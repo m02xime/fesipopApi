@@ -10,7 +10,7 @@ app = Flask(__name__)
 load_dotenv()
 
 # Accéder à une variable :
-POSTGRES_URL = os.getenv('POSTGRES_URL')
+POSTGRES_URL = os.getenv('DATABASE_URL')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = POSTGRES_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
