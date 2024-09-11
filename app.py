@@ -1,11 +1,16 @@
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import HTTPException
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 
-# Your Supabase PostgreSQL URL
-POSTGRES_URL = "postgresql://postgres.hafdmgyrptulxipkorhw:r8mCe!t9hTwCSrt@aws-0-eu-west-3.pooler.supabase.com:6543/postgres"
+# Charger le fichier .env (assurez-vous qu'il est dans le même répertoire que votre script)
+load_dotenv()
+
+# Accéder à une variable :
+POSTGRES_URL = os.getenv('POSTGRES_URL')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = POSTGRES_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
