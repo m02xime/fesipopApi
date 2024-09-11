@@ -1,0 +1,16 @@
+# Ignore les fichiers Python compilés
+__pycache__/
+
+# Ignore les fichiers de cache, de tests et de build
+.pytest_cache/
+.mypy_cache/
+build/
+dist/
+
+# Ignore les fichiers de configuration spécifiques
+.env
+.vscode/
+.idea/
+
+# Ignore les fichiers générés par les outils de virtualisation
+venv/
