@@ -135,6 +135,50 @@ def delete_evenement(id):
         return jsonify({'message': 'Evenement deleted!'})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+    
+@app.route('/evenements/search', methods=['GET'])
+def search_evenements():
+    try:
+        nom_artiste = request.form.get('nom_artiste')
+        genre_musical = request.form.get('genre_musical')
+        date = request.form.get('date')
+        ville = request.form.get('ville')
+        nom_evenement = request.form.get('nom_evenement')
+
+        query = Evenement.query.join(Artiste).join(Description)
+
+        if nom_artiste:
+            query = query.filter(Artiste.nom.ilike(f'%{nom_artiste}%'))
+        if genre_musical:
+            query = query.filter(Artiste.genre_musical.ilike(f'%{genre_musical}%'))
+        if date:
+            query = query.filter(Description.date == date)
+        if ville:
+            query = query.filter(Description.ville.ilike(f'%{ville}%'))
+        if nom_evenement:
+            query = query.filter(Evenement.nom_evenement.ilike(f'%{nom_evenement}%'))
+
+        evenements = query.all()
+
+        evenements_json = [
+            {
+                'id': evenement.id,
+                'lieu': evenement.lieu,
+                'nom_evenement': evenement.nom_evenement,
+                'type': evenement.type,
+                'artiste_id': evenement.artiste_id,
+                'longitude': evenement.longitude,
+                'latitude': evenement.latitude,
+                'photo': evenement.photo
+            }
+            for evenement in evenements
+        ]
+
+        return jsonify(evenements_json)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/descriptions', methods=['GET'])
 def get_descriptions():
