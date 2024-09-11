@@ -1,10 +1,12 @@
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.exceptions import HTTPException
 from dotenv import load_dotenv
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 # Charger le fichier .env (assurez-vous qu'il est dans le même répertoire que votre script)
 load_dotenv()
