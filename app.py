@@ -1,3 +1,4 @@
+import datetime
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
@@ -430,22 +431,15 @@ def search_evenements():
     tags:
       - events
     parameters:
-      - name: nom_artiste
+      - name: search_term
         in: query
         type: string
-      - name: genre_musical
-        in: query
-        type: string
+        description: General search term for artist name, genre, city, or event name
       - name: date
         in: query
         type: string
         format: date
-      - name: ville
-        in: query
-        type: string
-      - name: nom_evenement
-        in: query
-        type: string
+        description: Specific date to search for (YYYY-MM-DD)
     responses:
       200:
         description: List of matching events
@@ -462,8 +456,15 @@ def search_evenements():
                 type: string
               type:
                 type: string
-              artiste_id:
-                type: integer
+              artiste:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  nom:
+                    type: string
+                  genre_musical:
+                    type: string
               longitude:
                 type: number
               latitude:
@@ -474,24 +475,28 @@ def search_evenements():
         description: Error occurred
     """
     try:
-        nom_artiste = request.form.get('nom_artiste')
-        genre_musical = request.form.get('genre_musical')
-        date = request.form.get('date')
-        ville = request.form.get('ville')
-        nom_evenement = request.form.get('nom_evenement')
+        search_term = request.form.get('search_term', '')
+        date_search = request.form.get('date')
 
         query = Evenement.query.join(Artiste).join(Description)
 
-        if nom_artiste:
-            query = query.filter(Artiste.nom.ilike(f'%{nom_artiste}%'))
-        if genre_musical:
-            query = query.filter(Artiste.genre_musical.ilike(f'%{genre_musical}%'))
-        if date:
-            query = query.filter(Description.date == date)
-        if ville:
-            query = query.filter(Description.ville.ilike(f'%{ville}%'))
-        if nom_evenement:
-            query = query.filter(Evenement.nom_evenement.ilike(f'%{nom_evenement}%'))
+        if search_term:
+            search_term = f'%{search_term}%'
+            query = query.filter(
+                db.or_(
+                    Artiste.nom.ilike(search_term),
+                    Artiste.genre_musical.ilike(search_term),
+                    Description.ville.ilike(search_term),
+                    Evenement.nom_evenement.ilike(search_term)
+                )
+            )
+
+        if date_search:
+            try:
+                search_date = datetime.strptime(date_search, '%Y-%m-%d').date()
+                query = query.filter(Description.date == search_date)
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
 
         evenements = query.all()
 
@@ -501,7 +506,11 @@ def search_evenements():
                 'lieu': evenement.lieu,
                 'nom_evenement': evenement.nom_evenement,
                 'type': evenement.type,
-                'artiste_id': evenement.artiste_id,
+                'artiste': {
+                    'id': evenement.artiste.id,
+                    'nom': evenement.artiste.nom,
+                    'genre_musical': evenement.artiste.genre_musical
+                },
                 'longitude': evenement.longitude,
                 'latitude': evenement.latitude,
                 'photo': evenement.photo
