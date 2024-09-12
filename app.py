@@ -199,10 +199,10 @@ def get_evenements():
                 'nom_evenement': evenement.nom_evenement,
                 'type': evenement.type,
                 'artiste': {
-                    'id': artiste.id,
-                    'nom': artiste.nom,
-                    'genre_musical': artiste.genre_musical
-                },
+                    'id': artiste.id if artiste else None,
+                    'nom': artiste.nom if artiste else None,
+                    'genre_musical': artiste.genre_musical if artiste else None
+                } if artiste else None,
                 'longitude': evenement.longitude,
                 'latitude': evenement.latitude,
                 'photo': evenement.photo
