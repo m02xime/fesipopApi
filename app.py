@@ -3,7 +3,8 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.exceptions import HTTPException
-from werkzeug.security import check_password_hash, generate_password_hash
+from werkzeug.security import check_password_hash
+from flasgger import Swagger
 from dotenv import load_dotenv
 import os
 
@@ -22,6 +23,9 @@ app.config['JWT_SECRET_KEY'] = 'JeanPierre'  # Secret pour JWT
 
 db = SQLAlchemy(app)
 jwt = JWTManager(app)
+
+# Initialiser Swagger
+swagger = Swagger(app)
 
 # Modèle utilisateur pour l'authentification
 class User(db.Model):
@@ -57,11 +61,46 @@ class Artiste(db.Model):
 
 @app.route('/')
 def index():
+    """
+    Home page
+    ---
+    responses:
+      200:
+        description: Welcome message
+    """
     return "Hello, Supabase!"
 
 # Route pour se connecter et obtenir un token
 @app.route('/login', methods=['POST'])
 def login():
+    """
+    User login
+    ---
+    tags:
+      - authentication
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+            password:
+              type: string
+    responses:
+      200:
+        description: Login successful
+        schema:
+          properties:
+            token:
+              type: string
+      400:
+        description: Missing name or password
+      401:
+        description: Invalid credentials
+    """
     try:
         # Récupérer les données JSON envoyées par le client
         data = request.get_json()
@@ -92,11 +131,61 @@ def login():
 @app.route('/protected', methods=['GET'])
 @jwt_required()
 def protected():
+    """
+    Protected route
+    ---
+    tags:
+      - authentication
+    security:
+      - JWT: []
+    responses:
+      200:
+        description: Success message
+      401:
+        description: Missing or invalid token
+    """
     current_user = get_jwt_identity()
     return jsonify({'message': f'Hello {current_user}!'}), 200
 
 @app.route('/evenements', methods=['GET'])
 def get_evenements():
+    """
+    Get all events
+    ---
+    tags:
+      - events
+    responses:
+      200:
+        description: List of all events
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              lieu:
+                type: string
+              nom_evenement:
+                type: string
+              type:
+                type: string
+              artiste:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  nom:
+                    type: string
+                  genre_musical:
+                    type: string
+              longitude:
+                type: number
+              latitude:
+                type: number
+              photo:
+                type: string
+    """
     try:
         evenements = Evenement.query.all()
         evenements_json = []
@@ -123,6 +212,40 @@ def get_evenements():
 @app.route('/evenements', methods=['POST'])
 @jwt_required()  # Protection JWT
 def add_evenement():
+    """
+    Add a new event
+    ---
+    tags:
+      - events
+    security:
+      - JWT: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            lieu:
+              type: string
+            nom_evenement:
+              type: string
+            type:
+              type: string
+            artiste_id:
+              type: integer
+            longitude:
+              type: number
+            latitude:
+              type: number
+            photo:
+              type: string
+    responses:
+      200:
+        description: Event added successfully
+      500:
+        description: Error occurred
+    """
     try:
         data = request.get_json()
         evenement = Evenement(
@@ -142,6 +265,48 @@ def add_evenement():
 
 @app.route('/evenements/<int:id>', methods=['GET'])
 def get_evenement(id):
+    """
+    Get a specific event
+    ---
+    tags:
+      - events
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Event details
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            lieu:
+              type: string
+            nom_evenement:
+              type: string
+            type:
+              type: string
+            artiste:
+              type: object
+              properties:
+                id:
+                  type: integer
+                nom:
+                  type: string
+                genre_musical:
+                  type: string
+            longitude:
+              type: number
+            latitude:
+              type: number
+            photo:
+              type: string
+      404:
+        description: Event not found
+    """
     try:
         evenement = Evenement.query.get(id)
         if evenement is None:
@@ -167,6 +332,46 @@ def get_evenement(id):
 @app.route('/evenements/<int:id>', methods=['PUT'])
 @jwt_required()  # Protection JWT
 def update_evenement(id):
+    """
+    Update an event
+    ---
+    tags:
+      - events
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            lieu:
+              type: string
+            nom_evenement:
+              type: string
+            type:
+              type: string
+            artiste_id:
+              type: integer
+            longitude:
+              type: number
+            latitude:
+              type: number
+            photo:
+              type: string
+    responses:
+      200:
+        description: Event updated successfully
+      404:
+        description: Event not found
+      500:
+        description: Error occurred
+    """
     try:
         evenement = Evenement.query.get(id)
         if evenement is None:
@@ -187,6 +392,26 @@ def update_evenement(id):
 @app.route('/evenements/<int:id>', methods=['DELETE'])
 @jwt_required()  # Protection JWT
 def delete_evenement(id):
+    """
+    Delete an event
+    ---
+    tags:
+      - events
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Event deleted successfully
+      404:
+        description: Event not found
+      500:
+        description: Error occurred
+    """
     try:
         evenement = Evenement.query.get(id)
         if evenement is None:
@@ -199,6 +424,55 @@ def delete_evenement(id):
     
 @app.route('/evenements/search', methods=['GET'])
 def search_evenements():
+    """
+    Search events
+    ---
+    tags:
+      - events
+    parameters:
+      - name: nom_artiste
+        in: query
+        type: string
+      - name: genre_musical
+        in: query
+        type: string
+      - name: date
+        in: query
+        type: string
+        format: date
+      - name: ville
+        in: query
+        type: string
+      - name: nom_evenement
+        in: query
+        type: string
+    responses:
+      200:
+        description: List of matching events
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              lieu:
+                type: string
+              nom_evenement:
+                type: string
+              type:
+                type: string
+              artiste_id:
+                type: integer
+              longitude:
+                type: number
+              latitude:
+                type: number
+              photo:
+                type: string
+      500:
+        description: Error occurred
+    """
     try:
         nom_artiste = request.form.get('nom_artiste')
         genre_musical = request.form.get('genre_musical')
@@ -243,6 +517,35 @@ def search_evenements():
 
 @app.route('/descriptions', methods=['GET'])
 def get_descriptions():
+    """
+    Get all descriptions
+    ---
+    tags:
+      - descriptions
+    responses:
+      200:
+        description: List of all descriptions
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              evenement_id:
+                type: integer
+              titre:
+                type: string
+              image:
+                type: string
+              date:
+                type: string
+                format: date
+              ville:
+                type: string
+              description:
+                type: string
+    """
     try:
         descriptions = Description.query.all()
         descriptions_json = []
@@ -263,6 +566,39 @@ def get_descriptions():
 @app.route('/descriptions', methods=['POST'])
 @jwt_required()  # Protection JWT
 def add_description():
+    """
+    Add a new description
+    ---
+    tags:
+      - descriptions
+    security:
+      - JWT: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            evenement_id:
+              type: integer
+            titre:
+              type: string
+            image:
+              type: string
+            date:
+              type: string
+              format: date
+            ville:
+              type: string
+            description:
+              type: string
+    responses:
+      200:
+        description: Description added successfully
+      500:
+        description: Error occurred
+    """
     try:
         data = request.get_json()
         description = Description(
@@ -281,6 +617,40 @@ def add_description():
 
 @app.route('/descriptions/<int:id>', methods=['GET'])
 def get_description(id):
+    """
+    Get a specific description
+    ---
+    tags:
+      - descriptions
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Description details
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            evenement_id:
+              type: integer
+            titre:
+              type: string
+            image:
+              type: string
+            date:
+              type: string
+              format: date
+            ville:
+              type: string
+            description:
+              type: string
+      404:
+        description: Description not found
+    """
     try:
         description = Description.query.filter_by(evenement_id=id).first()
         if description is None:
@@ -300,6 +670,45 @@ def get_description(id):
 @app.route('/descriptions/<int:id>', methods=['PUT'])
 @jwt_required()  # Protection JWT
 def update_description(id):
+    """
+    Update a description
+    ---
+    tags:
+      - descriptions
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            evenement_id:
+              type: integer
+            titre:
+              type: string
+            image:
+              type: string
+            date:
+              type: string
+              format: date
+            ville:
+              type: string
+            description:
+              type: string
+    responses:
+      200:
+        description: Description updated successfully
+      404:
+        description: Description not found
+      500:
+        description: Error occurred
+    """
     try:
         description = Description.query.get(id)
         if description is None:
@@ -319,6 +728,26 @@ def update_description(id):
 @app.route('/descriptions/<int:id>', methods=['DELETE'])
 @jwt_required()  # Protection JWT
 def delete_description(id):
+    """
+    Delete a description
+    ---
+    tags:
+      - descriptions
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Description deleted successfully
+      404:
+        description: Description not found
+      500:
+        description: Error occurred
+    """
     try:
         description = Description.query.get(id)
         if description is None:
@@ -331,6 +760,26 @@ def delete_description(id):
 
 @app.route('/artistes', methods=['GET'])
 def get_artistes():
+    """
+    Get all artists
+    ---
+    tags:
+      - artists
+    responses:
+      200:
+        description: List of all artists
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              nom:
+                type: string
+              genre_musical:
+                type: string
+    """
     try:
         artistes = Artiste.query.all()
         artistes_json = []
@@ -347,6 +796,30 @@ def get_artistes():
 @app.route('/artistes', methods=['POST'])
 @jwt_required()  # Protection JWT
 def add_artiste():
+    """
+    Add a new artist
+    ---
+    tags:
+      - artists
+    security:
+      - JWT: []
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nom:
+              type: string
+            genre_musical:
+              type: string
+    responses:
+      200:
+        description: Artist added successfully
+      500:
+        description: Error occurred
+    """
     try:
         data = request.get_json()
         artiste = Artiste(
@@ -361,6 +834,31 @@ def add_artiste():
 
 @app.route('/artistes/<int:id>', methods=['GET'])
 def get_artiste(id):
+    """
+    Get a specific artist
+    ---
+    tags:
+      - artists
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Artist details
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            nom:
+              type: string
+            genre_musical:
+              type: string
+      404:
+        description: Artist not found
+    """
     try:
         artiste = Artiste.query.get(id)
         if artiste is None:
@@ -376,6 +874,36 @@ def get_artiste(id):
 @app.route('/artistes/<int:id>', methods=['PUT'])
 @jwt_required()  # Protection JWT
 def update_artiste(id):
+    """
+    Update an artist
+    ---
+    tags:
+      - artists
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            nom:
+              type: string
+            genre_musical:
+              type: string
+    responses:
+      200:
+        description: Artist updated successfully
+      404:
+        description: Artist not found
+      500:
+        description: Error occurred
+    """
     try:
         artiste = Artiste.query.get(id)
         if artiste is None:
@@ -391,6 +919,26 @@ def update_artiste(id):
 @app.route('/artistes/<int:id>', methods=['DELETE'])
 @jwt_required()  # Protection JWT
 def delete_artiste(id):
+    """
+    Delete an artist
+    ---
+    tags:
+      - artists
+    security:
+      - JWT: []
+    parameters:
+      - name: id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Artist deleted successfully
+      404:
+        description: Artist not found
+      500:
+        description: Error occurred
+    """
     try:
         artiste = Artiste.query.get(id)
         if artiste is None:
