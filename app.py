@@ -429,54 +429,55 @@ def search_evenements():
     Search events
     ---
     tags:
-      - events
+        - events
     parameters:
-      - name: search_term
-        in: query
-        type: string
-        description: General search term for artist name, genre, city, or event name
-      - name: date
-        in: query
-        type: string
-        format: date
-        description: Specific date to search for (YYYY-MM-DD)
+        - name: search_term
+          in: query
+          type: string
+          required: false
+        - name: date
+          in: query
+          type: string
+          format: date
+          required: false
     responses:
-      200:
-        description: List of matching events
-        schema:
-          type: array
-          items:
-            type: object
-            properties:
-              id:
-                type: integer
-              lieu:
-                type: string
-              nom_evenement:
-                type: string
-              type:
-                type: string
-              artiste:
-                type: object
-                properties:
-                  id:
-                    type: integer
-                  nom:
-                    type: string
-                  genre_musical:
-                    type: string
-              longitude:
-                type: number
-              latitude:
-                type: number
-              photo:
-                type: string
-      500:
-        description: Error occurred
+        200:
+            description: List of events matching the search term
+            schema:
+                type: array
+                items:
+                    type: object
+                    properties:
+                        id:
+                            type: integer
+                        lieu:
+                            type: string
+                        nom_evenement:
+                            type: string
+                        type:
+                            type: string
+                        artiste:
+                            type: object
+                            properties:
+                                id:
+                                    type: integer
+                                nom:
+                                    type: string
+                                genre_musical:
+                                    type: string
+                        longitude:
+                            type: number
+                        latitude:
+                            type: number
+                        photo:
+                            type: string
+        400:
+            description: Invalid date format
+        500:
+            description: Error occurred
     """
     try:
         search_term = request.form.get('search_term', '')
-        date_search = request.form.get('date')
 
         query = Evenement.query.join(Artiste).join(Description)
 
@@ -491,12 +492,14 @@ def search_evenements():
                 )
             )
 
-        if date_search:
+        date = request.form.get('date', '')
+        if date:
             try:
-                search_date = datetime.strptime(date_search, '%Y-%m-%d').date()
-                query = query.filter(Description.date == search_date)
+                date_obj = datetime.datetime.strptime(date, '%Y-%m-%d').date()
+                query = query.filter(Description.date == date_obj)
             except ValueError:
                 return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
 
         evenements = query.all()
 
