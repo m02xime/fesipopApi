@@ -426,61 +426,69 @@ def delete_evenement(id):
 @app.route('/evenements/search', methods=['GET'])
 def search_evenements():
     """
-    Search events
+    Recherche des événements
     ---
     tags:
-        - events
+      - events
     parameters:
-        - name: search_term
-          in: query
-          type: string
-          required: false
-        - name: date
-          in: query
-          type: string
-          format: date
-          required: false
+      - name: search_term
+        in: query  # Modifié pour query (paramètre d'URL)
+        type: string
+        required: false
+        description: Terme de recherche pour filtrer les événements (artiste, genre musical, ville, etc.)
+        example: Rock
+      - name: date
+        in: query  # Modifié pour query (paramètre d'URL)
+        type: string
+        format: date
+        required: false
+        description: Date pour filtrer les événements (format YYYY-MM-DD)
+        example: 2023-09-12
     responses:
-        200:
-            description: List of events matching the search term
-            schema:
-                type: array
-                items:
-                    type: object
-                    properties:
-                        id:
-                            type: integer
-                        lieu:
-                            type: string
-                        nom_evenement:
-                            type: string
-                        type:
-                            type: string
-                        artiste:
-                            type: object
-                            properties:
-                                id:
-                                    type: integer
-                                nom:
-                                    type: string
-                                genre_musical:
-                                    type: string
-                        longitude:
-                            type: number
-                        latitude:
-                            type: number
-                        photo:
-                            type: string
-        400:
-            description: Invalid date format
-        500:
-            description: Error occurred
+      200:
+        description: Liste des événements correspondant aux critères de recherche
+        schema:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              lieu:
+                type: string
+              nom_evenement:
+                type: string
+              type:
+                type: string
+              artiste:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  nom:
+                    type: string
+                  genre_musical:
+                    type: string
+              longitude:
+                type: number
+              latitude:
+                type: number
+              photo:
+                type: string
+      400:
+        description: Format de date invalide
+      500:
+        description: Erreur serveur
     """
     try:
-        search_term = request.form.get('search_term', '')
+        # Récupérer les paramètres envoyés via la chaîne de requête (query string)
+        search_term = request.args.get('search_term', '')
+        date = request.args.get('date', '')
 
+        # Créer la requête de base avec jointures sur Artiste et Description
         query = Evenement.query.join(Artiste).join(Description)
 
+        # Si un terme de recherche est fourni, filtrer les résultats
         if search_term:
             search_term = f'%{search_term}%'
             query = query.filter(
@@ -492,17 +500,18 @@ def search_evenements():
                 )
             )
 
-        date = request.form.get('date', '')
+        # Si une date est fournie, la filtrer
         if date:
             try:
                 date_obj = datetime.datetime.strptime(date, '%Y-%m-%d').date()
                 query = query.filter(Description.date == date_obj)
             except ValueError:
-                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+                return jsonify({'error': 'Format de date invalide. Utilisez le format YYYY-MM-DD.'}), 400
 
-
+        # Exécuter la requête et obtenir les événements correspondants
         evenements = query.all()
 
+        # Convertir les événements en JSON
         evenements_json = [
             {
                 'id': evenement.id,
