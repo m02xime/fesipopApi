@@ -51,6 +51,7 @@ class Description(db.Model):
     titre = db.Column(db.String)
     image = db.Column(db.String)
     date = db.Column(db.Date)
+    heure = db.Column(db.String)
     ville = db.Column(db.String)
     description = db.Column(db.Text)
 
@@ -577,6 +578,7 @@ def get_descriptions():
                 'titre': description.titre,
                 'image': description.image,
                 'date': description.date,
+                'heure': description.heure,
                 'ville': description.ville,
                 'description': description.description
             })
@@ -627,6 +629,7 @@ def add_description():
             titre=data['titre'],
             image=data['image'],
             date=data['date'],
+            heure=data['heure'],
             ville=data['ville'],
             description=data['description']
         )
@@ -682,6 +685,7 @@ def get_description(id):
             'titre': description.titre,
             'image': description.image,
             'date': description.date,
+            'heure': description.heure,
             'ville': description.ville,
             'description': description.description
         })
@@ -739,6 +743,7 @@ def update_description(id):
         description.titre = data['titre']
         description.image = data['image']
         description.date = data['date']
+        description.heure = data['heure']
         description.ville = data['ville']
         description.description = data['description']
         db.session.commit()
