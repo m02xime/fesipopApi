@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from werkzeug.exceptions import HTTPException
+from werkzeug.security import check_password_hash, generate_password_hash
 from dotenv import load_dotenv
 import os
 
@@ -16,8 +18,16 @@ POSTGRES_URL = os.getenv('DATABASE_URL')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = POSTGRES_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = 'JeanPierre'  # Secret pour JWT
 
 db = SQLAlchemy(app)
+jwt = JWTManager(app)
+
+# Modèle utilisateur pour l'authentification
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, unique=True, nullable=False)
+    password = db.Column(db.String, nullable=False)
 
 class Evenement(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,6 +59,42 @@ class Artiste(db.Model):
 def index():
     return "Hello, Supabase!"
 
+# Route pour se connecter et obtenir un token
+@app.route('/login', methods=['POST'])
+def login():
+    try:
+        # Récupérer les données JSON envoyées par le client
+        data = request.get_json()
+
+        # Vérifier si les champs sont bien présents dans la requête
+        if not data or 'name' not in data or 'password' not in data:
+            return jsonify({'error': 'Missing name or password'}), 400
+                
+        # Chercher l'utilisateur en fonction du name (ou du champ `name` si c'est ce que tu utilises)
+        user = User.query.filter_by(name=data['name']).first()
+
+        # Si l'utilisateur n'existe pas ou si le mot de passe ne correspond pas
+        if not user or not check_password_hash(user.password, data['password']):
+            return jsonify({'error': 'Invalid credentials'}), 401
+
+        # Générer un token JWT si les informations d'identification sont correctes
+        access_token = create_access_token(identity=user.name)
+
+        # Retourner le token dans une réponse JSON
+        return jsonify({'token': access_token}), 200
+
+    except Exception as e:
+        # Gérer toute erreur inattendue
+        return jsonify({'error': str(e)}), 500
+
+
+# Route sécurisée (exemple)
+@app.route('/protected', methods=['GET'])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    return jsonify({'message': f'Hello {current_user}!'}), 200
+
 @app.route('/evenements', methods=['GET'])
 def get_evenements():
     try:
@@ -75,6 +121,7 @@ def get_evenements():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/evenements', methods=['POST'])
+@jwt_required()  # Protection JWT
 def add_evenement():
     try:
         data = request.get_json()
@@ -118,6 +165,7 @@ def get_evenement(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/evenements/<int:id>', methods=['PUT'])
+@jwt_required()  # Protection JWT
 def update_evenement(id):
     try:
         evenement = Evenement.query.get(id)
@@ -137,6 +185,7 @@ def update_evenement(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/evenements/<int:id>', methods=['DELETE'])
+@jwt_required()  # Protection JWT
 def delete_evenement(id):
     try:
         evenement = Evenement.query.get(id)
@@ -212,6 +261,7 @@ def get_descriptions():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/descriptions', methods=['POST'])
+@jwt_required()  # Protection JWT
 def add_description():
     try:
         data = request.get_json()
@@ -248,6 +298,7 @@ def get_description(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/descriptions/<int:id>', methods=['PUT'])
+@jwt_required()  # Protection JWT
 def update_description(id):
     try:
         description = Description.query.get(id)
@@ -266,6 +317,7 @@ def update_description(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/descriptions/<int:id>', methods=['DELETE'])
+@jwt_required()  # Protection JWT
 def delete_description(id):
     try:
         description = Description.query.get(id)
@@ -293,6 +345,7 @@ def get_artistes():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/artistes', methods=['POST'])
+@jwt_required()  # Protection JWT
 def add_artiste():
     try:
         data = request.get_json()
@@ -321,6 +374,7 @@ def get_artiste(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/artistes/<int:id>', methods=['PUT'])
+@jwt_required()  # Protection JWT
 def update_artiste(id):
     try:
         artiste = Artiste.query.get(id)
@@ -335,6 +389,7 @@ def update_artiste(id):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/artistes/<int:id>', methods=['DELETE'])
+@jwt_required()  # Protection JWT
 def delete_artiste(id):
     try:
         artiste = Artiste.query.get(id)
