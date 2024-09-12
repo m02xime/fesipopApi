@@ -314,20 +314,22 @@ def get_evenement(id):
         if evenement is None:
             return jsonify({'error': 'Evenement not found'}), 404
         artiste = Artiste.query.get(evenement.artiste_id)
-        return jsonify({
+        evenement_data = {
             'id': evenement.id,
             'lieu': evenement.lieu,
             'nom_evenement': evenement.nom_evenement,
             'type': evenement.type,
-            'artiste': {
-                'id': artiste.id,
-                'nom': artiste.nom,
-                'genre_musical': artiste.genre_musical
-            },
             'longitude': evenement.longitude,
             'latitude': evenement.latitude,
             'photo': evenement.photo
-        })
+        }
+        if artiste:
+            evenement_data['artiste'] = {
+            'id': artiste.id,
+            'nom': artiste.nom,
+            'genre_musical': artiste.genre_musical
+            }
+        return jsonify(evenement_data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -487,7 +489,7 @@ def search_evenements():
         date = request.args.get('date', '')
 
         # Créer la requête de base avec jointures sur Artiste et Description
-        query = Evenement.query.join(Artiste).join(Description)
+        query = Evenement.query.join(Artiste).join(Description).filter(Evenement.artiste_id.isnot(None))
 
         # Si un terme de recherche est fourni, filtrer les résultats
         if search_term:
