@@ -55,12 +55,17 @@ def get_evenements():
         evenements = Evenement.query.all()
         evenements_json = []
         for evenement in evenements:
+            artiste = Artiste.query.get(evenement.artiste_id)
             evenements_json.append({
                 'id': evenement.id,
                 'lieu': evenement.lieu,
                 'nom_evenement': evenement.nom_evenement,
                 'type': evenement.type,
-                'artiste_id': evenement.artiste_id,
+                'artiste': {
+                    'id': artiste.id,
+                    'nom': artiste.nom,
+                    'genre_musical': artiste.genre_musical
+                },
                 'longitude': evenement.longitude,
                 'latitude': evenement.latitude,
                 'photo': evenement.photo
@@ -94,12 +99,17 @@ def get_evenement(id):
         evenement = Evenement.query.get(id)
         if evenement is None:
             return jsonify({'error': 'Evenement not found'}), 404
+        artiste = Artiste.query.get(evenement.artiste_id)
         return jsonify({
             'id': evenement.id,
             'lieu': evenement.lieu,
             'nom_evenement': evenement.nom_evenement,
             'type': evenement.type,
-            'artiste_id': evenement.artiste_id,
+            'artiste': {
+                'id': artiste.id,
+                'nom': artiste.nom,
+                'genre_musical': artiste.genre_musical
+            },
             'longitude': evenement.longitude,
             'latitude': evenement.latitude,
             'photo': evenement.photo
