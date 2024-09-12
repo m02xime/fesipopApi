@@ -563,6 +563,9 @@ def get_descriptions():
               date:
                 type: string
                 format: date
+              heure:
+                type: string
+                format: time
               ville:
                 type: string
               description:
@@ -612,6 +615,9 @@ def add_description():
             date:
               type: string
               format: date
+            heure:
+              type: string
+              format: time
             ville:
               type: string
             description:
@@ -722,6 +728,9 @@ def update_description(id):
             date:
               type: string
               format: date
+            heure:
+              type: string
+              format: time
             ville:
               type: string
             description:
